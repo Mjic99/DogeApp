@@ -3,42 +3,45 @@ package com.example.testlistview
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.ListView
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import retrofit2.*
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-//import sun.jvm.hotspot.utilities.IntArray
 
 
 const val DOGE_MESSAGE = "com.example.testlistview.MESSAGE"
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var lvItems : ListView
-    private lateinit var adapter: Adapter
+    private lateinit var rvItems : RecyclerView
+    private lateinit var adapter: DogeAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        lvItems = findViewById(R.id.lv_items)
+        rvItems = findViewById(R.id.rv_items)
+        rvItems.layoutManager = LinearLayoutManager(this)
 
         getDoges()
-
-        lvItems.setOnItemClickListener { parent, view, position, id ->
-
-            val selectedDoge = parent.adapter.getItem(position) as Doge
-
-            val intent = Intent(this, DisplayDogeActivity::class.java).apply {
-                putExtra(DOGE_MESSAGE, selectedDoge)
-            }
-            startActivity(intent)
-        }
     }
 
-    private fun createAdapter(list: List<Doge>) {
-        adapter = Adapter(this, list)
-        lvItems.adapter = adapter
+    private val onDogeClickListener = View.OnClickListener { view ->
+        val viewHolder = view.tag as ViewHolder
+        val position = viewHolder.adapterPosition
+
+        val selectedDoge: Doge = adapter.listItems[position]
+
+        val intent = Intent(this, DisplayDogeActivity::class.java).apply {
+            putExtra(DOGE_MESSAGE, selectedDoge)
+        }
+        startActivity(intent)
     }
 
     private fun getDoges() {
@@ -56,7 +59,9 @@ class MainActivity : AppCompatActivity() {
                 if (!response?.isSuccessful!!) {
                     Log.v("xd", response.code().toString())
                 }
-                createAdapter(response.body()!!)
+                adapter = DogeAdapter(response.body()!!)
+                rvItems.adapter = adapter
+                adapter.onItemClickListener = onDogeClickListener
             }
 
             override fun onFailure(call: Call<List<Doge>>?, t: Throwable?) {
